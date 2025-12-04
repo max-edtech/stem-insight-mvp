@@ -2,32 +2,66 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { getRecords, Record } from "@/app/utils/storage";
+// ✅ 關鍵修正：將引入的 Record 型別重新命名為 UserRecord，避免與內建型別衝突
+import { getRecords, Record as UserRecord } from "@/app/utils/storage"; 
 import {
   Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer,
   BarChart, Bar, XAxis, YAxis, Tooltip, Cell
 } from "recharts";
 
+// 🤖 報告生成器：分析盲點，並指出在哪個科目上出錯最多
+const generateReportSummary = (allRecords: UserRecord[], blindSpotData: { name: string, count: number }[]): string => {
+    if (allRecords.length === 0) return "No data recorded yet. Go take some quizzes!";
+
+    const mainBlindSpot = blindSpotData.length > 0 ? blindSpotData[0].name : null;
+    if (!mainBlindSpot) return "Your stats look balanced, or you haven't made many mistakes! Try the 'Desert' biome for a harder challenge!";
+
+    const mainSpotRecords = allRecords.filter(r => !r.isCorrect && r.blindSpot === mainBlindSpot);
+    const subjectCounts: Record<string, number> = {}; // 👈 注意：這裡用的是內建 Record<string, number>
+    
+    mainSpotRecords.forEach(r => {
+        subjectCounts[r.subject] = (subjectCounts[r.subject] || 0) + 1;
+    });
+
+    const subjectWithMostErrors = Object.keys(subjectCounts).reduce((a, b) => 
+        subjectCounts[a] > subjectCounts[b] ? a : b, 'None'
+    );
+    const errorCount = subjectCounts[subjectWithMostErrors] || 0;
+
+    switch (mainBlindSpot) {
+        case "Calculation Error":
+            return `您的首要威脅是 **計算粗心 (${errorCount} 次)**。這主要發生在 ${subjectWithMostErrors.toUpperCase()} 類型的題目上。請練習在解題後加入嚴格的「驗算步驟」，以避免失分。`;
+        case "Concept Error":
+            return `**觀念混淆** 是最大的失分點 (${errorCount} 次)。請針對 ${subjectWithMostErrors.toUpperCase()} 的主題進行複習。這是知識儲存上的漏洞，建議回頭查閱講義。`;
+        case "Misreading":
+            return `您有 ${errorCount} 次的錯誤歸因於**審題不清**。您的知識是足夠的，但請在作答時放慢速度，劃出關鍵字，避免因為時間壓力而看錯問題。`;
+        case "Careless":
+            return `您有 ${errorCount} 次的 **純粹粗心** 錯誤。這表示您的知識基礎穩固，但遺失了分數。建議在每次測驗結束後加入 5 分鐘的「專門檢查時間」。`;
+        default:
+            return `我們偵測到您的主要盲點是 ${mainBlindSpot}。請針對該類型的題目進行更多練習，以鞏固基礎。`;
+    }
+};
+
+
 export default function AnalysisPage() {
-  const [records, setRecords] = useState<Record[]>([]);
+  // ✅ 修正：現在使用 UserRecord[]
+  const [records, setRecords] = useState<UserRecord[]>([]); 
 
   useEffect(() => {
     setRecords(getRecords());
   }, []);
 
-  // 📊 1. 技能雷達圖數據處理
+  // 數據處理: 技能與盲點 (使用 UserRecord[])
   const skillStats = ["Knowledge", "Calculation", "Logic", "Observation"].map(skill => {
     const skillRecords = records.filter(r => r.skill === skill);
     const total = skillRecords.length;
     const correct = skillRecords.filter(r => r.isCorrect).length;
-    // 如果沒做過題目，預設給 20 分避免雷達圖太醜
     const score = total === 0 ? 20 : Math.round((correct / total) * 100);
     return { subject: skill, score, fullMark: 100 };
   });
 
-  // ⚠️ 2. 盲點誤區數據處理 (只算答錯的)
   const wrongRecords = records.filter(r => !r.isCorrect);
-  const blindSpotCounts: { [key: string]: number } = {};
+  const blindSpotCounts: Record<string, number> = {}; // 這裡仍使用內建 Record
   wrongRecords.forEach(r => {
     blindSpotCounts[r.blindSpot] = (blindSpotCounts[r.blindSpot] || 0) + 1;
   });
@@ -35,7 +69,9 @@ export default function AnalysisPage() {
   const blindSpotData = Object.keys(blindSpotCounts).map(key => ({
     name: key,
     count: blindSpotCounts[key]
-  })).sort((a, b) => b.count - a.count); // 錯誤最多的排前面
+  })).sort((a, b) => b.count - a.count);
+
+  const reportSummary = generateReportSummary(records, blindSpotData);
 
   return (
     <div className="min-h-screen bg-[#1a1a1a] text-white p-6 font-mono flex flex-col items-center">
@@ -122,15 +158,14 @@ export default function AnalysisPage() {
 
       </div>
 
-      {/* 底部建議 */}
-      <div className="w-full max-w-4xl mt-8 bg-blue-900/30 border-2 border-blue-500/50 p-4 rounded text-center">
-        <h3 className="text-blue-300 font-bold mb-1">🤖 AI Coach Tip</h3>
-        <p className="text-gray-300 text-sm">
-          {blindSpotData.length > 0 && blindSpotData[0].name === "Calculation" 
-            ? "You are losing points on Math Calculation. Try double-checking your numbers before submitting!"
-            : blindSpotData.length > 0 && blindSpotData[0].name === "Concept Error"
-            ? "Concept Errors detected. Review the 'Biology' textbook in the Library before the next run."
-            : "Your stats look balanced. Try the 'Desert' biome for a harder challenge!"}
+      {/* 底部建議 - 🤖 AI 教練報告 */}
+      <div className="w-full max-w-4xl mt-8 bg-blue-900/30 border-2 border-blue-500/50 p-4 rounded">
+        <h3 className="text-blue-300 font-bold mb-2 flex items-center gap-2">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20v-4"/></svg>
+          AI Coach Diagnostic Report
+        </h3>
+        <p className="text-gray-300 text-base leading-relaxed">
+          {reportSummary}
         </p>
       </div>
 
