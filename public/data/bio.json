@@ -1,0 +1,202 @@
+[
+  {
+    "id": 1,
+    "type": "mcq",
+    "question": "人體消化系統中，主要吸收水分的器官是？",
+    "options": ["胃", "小腸", "大腸", "食道"],
+    "answer": 2,
+    "skill": "消化系統",
+    "subskill": "大腸功能",
+    "explanation": "大腸的主要功能是吸收食物殘渣中的水分和電解質。"
+  },
+  {
+    "id": 2,
+    "type": "mcq",
+    "question": "下列哪一種消化液不含酵素？",
+    "options": ["唾液", "胃液", "膽汁", "胰液"],
+    "answer": 2,
+    "skill": "消化系統",
+    "subskill": "消化液",
+    "explanation": "膽汁由肝臟製造、膽囊儲存，主要功能是乳化脂肪，但不含任何消化酵素。"
+  },
+  {
+    "id": 3,
+    "type": "mcq",
+    "question": "血液中負責運送氧氣的主要成分是？",
+    "options": ["血漿", "白血球", "紅血球", "血小板"],
+    "answer": 2,
+    "skill": "循環系統",
+    "subskill": "血液成分",
+    "explanation": "紅血球富含血紅素，能攜帶氧氣。"
+  },
+  {
+    "id": 4,
+    "type": "mcq",
+    "question": "酵素（酶）的化學本質大多為何種生物分子？",
+    "options": ["脂質", "核酸", "碳水化合物", "蛋白質"],
+    "answer": 3,
+    "skill": "酵素",
+    "subskill": "酵素本質",
+    "explanation": "絕大多數酵素為蛋白質。"
+  },
+  {
+    "id": 5,
+    "type": "mcq",
+    "question": "人體血液循環中，將血液送往全身的是哪個心臟腔室？",
+    "options": ["右心房", "左心房", "右心室", "左心室"],
+    "answer": 3,
+    "skill": "循環系統",
+    "subskill": "心臟構造",
+    "explanation": "左心室收縮力量最強，將血液送往全身。"
+  },
+  {
+    "id": 6,
+    "type": "mcq",
+    "question": "下列哪種消化酵素的作用環境 pH 值為強酸性？",
+    "options": ["唾液澱粉酶", "胃蛋白酶", "胰脂肪酶", "腸液肽酶"],
+    "answer": 1,
+    "skill": "酵素",
+    "subskill": "酵素作用環境",
+    "explanation": "胃蛋白酶在胃液（pH 1.5–3.5）環境下作用最佳。"
+  },
+  {
+    "id": 7,
+    "type": "mcq",
+    "question": "消化道中最主要的消化與吸收場所是？",
+    "options": ["胃", "小腸", "大腸", "肝臟"],
+    "answer": 1,
+    "skill": "消化系統",
+    "subskill": "小腸功能",
+    "explanation": "小腸表面積最大，是主要的消化與吸收場所。"
+  },
+  {
+    "id": 8,
+    "type": "mcq",
+    "question": "下列哪一項功能與血小板有關？",
+    "options": ["運送氧氣", "防禦感染", "血液凝固", "運送養分"],
+    "answer": 2,
+    "skill": "循環系統",
+    "subskill": "血液成分",
+    "explanation": "血小板負責血液凝固。"
+  },
+  {
+    "id": 9,
+    "type": "mcq",
+    "question": "酵素作用的特性中，下列敘述何者錯誤？",
+    "options": ["酵素具專一性", "酵素的活性受溫度影響", "酵素在反應中會被消耗", "酵素可加速化學反應"],
+    "answer": 2,
+    "skill": "酵素",
+    "subskill": "酵素特性",
+    "explanation": "酵素是催化劑，不會被消耗。"
+  },
+  {
+    "id": 10,
+    "type": "mcq",
+    "question": "下列哪一器官同時屬於消化道和內分泌器官？",
+    "options": ["肝臟", "胰臟", "脾臟", "腎臟"],
+    "answer": 1,
+    "skill": "消化系統",
+    "subskill": "胰臟功能",
+    "explanation": "胰臟會分泌胰液，也分泌胰島素與升糖素。"
+  },
+  {
+    "id": 11,
+    "type": "mcq",
+    "question": "肺循環的起點是哪一個心臟腔室？",
+    "options": ["左心室", "右心室", "左心房", "右心房"],
+    "answer": 1,
+    "skill": "循環系統",
+    "subskill": "肺循環",
+    "explanation": "右心室將缺氧血送往肺部。"
+  },
+  {
+    "id": 12,
+    "type": "mcq",
+    "question": "酵素在超過最適溫度或 pH 值時會發生什麼？",
+    "options": ["活性增強", "變性並失去活性", "數量增加", "生成新產物"],
+    "answer": 1,
+    "skill": "酵素",
+    "subskill": "酵素變性",
+    "explanation": "過高溫度或極端 pH 值會使酵素變性。"
+  },
+  {
+    "id": 13,
+    "type": "mcq",
+    "question": "肝臟在消化作用中扮演的角色是什麼？",
+    "options": ["分泌胃酸", "儲存與分泌膽汁", "分泌胰島素", "分解蛋白質"],
+    "answer": 1,
+    "skill": "消化系統",
+    "subskill": "肝臟功能",
+    "explanation": "肝臟製造膽汁並送往膽囊儲存。"
+  },
+  {
+    "id": 14,
+    "type": "mcq",
+    "question": "體循環中，血液流經組織後氧氣與二氧化碳濃度變化為：",
+    "options": ["O2增 CO2增", "O2降 CO2降", "O2增 CO2降", "O2降 CO2增"],
+    "answer": 3,
+    "skill": "循環系統",
+    "subskill": "氣體交換",
+    "explanation": "血液釋放氧氣並吸收二氧化碳。"
+  },
+  {
+    "id": 15,
+    "type": "mcq",
+    "question": "澱粉在人體內開始分解的部位是？",
+    "options": ["胃", "口腔", "小腸", "大腸"],
+    "answer": 1,
+    "skill": "消化系統",
+    "subskill": "澱粉分解",
+    "explanation": "唾液中的澱粉酶會在口腔開始分解澱粉。"
+  },
+  {
+    "id": 16,
+    "type": "mcq",
+    "question": "下列哪種血球具有吞噬病原體的功能？",
+    "options": ["紅血球", "白血球", "血小板", "淋巴球"],
+    "answer": 1,
+    "skill": "循環系統",
+    "subskill": "免疫",
+    "explanation": "白血球負責吞噬與抵抗病原體。"
+  },
+  {
+    "id": 17,
+    "type": "mcq",
+    "question": "若酵素最適 pH 值為 7.0，把它放在 pH 2.0 的環境中會？",
+    "options": ["不變", "稍微增強", "急劇下降", "保持最高活性"],
+    "answer": 2,
+    "skill": "酵素",
+    "subskill": "pH 與酵素活性",
+    "explanation": "偏離最適 pH 會使酵素活性下降。"
+  },
+  {
+    "id": 18,
+    "type": "mcq",
+    "question": "下列哪條血管中流動的是充氧血？",
+    "options": ["肺動脈", "上下腔靜脈", "主動脈", "肝門靜脈"],
+    "answer": 2,
+    "skill": "循環系統",
+    "subskill": "血管分工",
+    "explanation": "主動脈輸送來自左心室的充氧血。"
+  },
+  {
+    "id": 19,
+    "type": "mcq",
+    "question": "蛋白質的消化產物是？",
+    "options": ["醣類", "蛋白質", "脂肪", "胺基酸"],
+    "answer": 3,
+    "skill": "消化系統",
+    "subskill": "蛋白質消化",
+    "explanation": "蛋白質經酵素分解後會變成胺基酸。"
+  },
+  {
+    "id": 20,
+    "type": "mcq",
+    "question": "酵素的『專一性』是指？",
+    "options": ["只在特定溫度作用", "只對特定受質作用", "只能催化一種反應", "只能在特定 pH 值作用"],
+    "answer": 1,
+    "skill": "酵素",
+    "subskill": "酵素專一性",
+    "explanation": "酵素通常只作用於特定受質，例如澱粉酶只分解澱粉。"
+  }
+]
