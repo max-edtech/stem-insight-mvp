@@ -1,72 +1,105 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useEffect, useRef, memo } from "react";
 
-export default function BackgroundMusic() {
+interface BackgroundMusicProps {
+  src: string;
+}
+
+// 🌍 全域變數：用來記錄「使用者是否已經跟網站互動過」
+// 只要在任何一頁點過一次，這個就會變成 true，之後換頁就不會被擋
+let hasUserInteractedGlobal = false;
+
+const BackgroundMusic = memo(function BackgroundMusic({ src }: BackgroundMusicProps) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [volume, setVolume] = useState(0.3); // 預設音量 30% (背景音樂不要太大聲)
 
-  // 嘗試自動播放 (通常會被瀏覽器擋下，但若使用者剛操作過則會成功)
   useEffect(() => {
-    if (audioRef.current) {
-      audioRef.current.volume = volume;
-    }
-    
-    // 監聽使用者的第一次點擊，解鎖自動播放限制
-    const unlockAudio = () => {
-      if (audioRef.current && !isPlaying) {
-        audioRef.current.play().then(() => {
-          setIsPlaying(true);
-        }).catch(() => {
-          // 失敗也沒關係，等待使用者手動點按鈕
-        });
+    // 建立音頻物件
+    const audio = new Audio(src);
+    audio.loop = true; 
+    audio.volume = 0.3; 
+    audioRef.current = audio;
+
+    // 播放邏輯
+    const tryToPlay = async () => {
+      try {
+        await audio.play();
+        setIsPlaying(true);
+      } catch (err: any) {
+        // 如果是 AbortError (正常的切換中斷) -> 忽略
+        // 如果是 NotAllowedError (瀏覽器阻擋) -> 等待點擊
+        if (err.name !== "AbortError") {
+          console.log("Autoplay waiting for interaction...");
+          setIsPlaying(false);
+        }
       }
-      // 解鎖後移除監聽，避免重複觸發
-      document.removeEventListener('click', unlockAudio);
     };
 
-    document.addEventListener('click', unlockAudio);
+    // 解鎖邏輯
+    const unlockAudio = () => {
+      hasUserInteractedGlobal = true; // 📝 標記：使用者已經互動過了
+      tryToPlay();
+    };
+
+    // 判斷是否可以直接播
+    if (hasUserInteractedGlobal) {
+      // 如果之前已經互動過 (例如在登入頁點過)，直接播！
+      tryToPlay();
+    } else {
+      // 如果是第一次來，掛上監聽器等待點擊
+      window.addEventListener('click', unlockAudio);
+      window.addEventListener('keydown', unlockAudio);
+    }
 
     return () => {
-      document.removeEventListener('click', unlockAudio);
+      window.removeEventListener('click', unlockAudio);
+      window.removeEventListener('keydown', unlockAudio);
+      
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
     };
-  }, []);
+  }, [src]);
 
-  const togglePlay = () => {
-    if (!audioRef.current) return;
-
+  // 手動開關
+  const togglePlay = async () => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    
     if (isPlaying) {
-      audioRef.current.pause();
+      audio.pause();
       setIsPlaying(false);
     } else {
-      audioRef.current.play();
-      setIsPlaying(true);
+      // 手動點擊開關也算是一種互動
+      hasUserInteractedGlobal = true; 
+      try {
+        await audio.play();
+        setIsPlaying(true);
+      } catch (err) {
+         // ignore
+      }
     }
   };
 
   return (
-    <div className="fixed bottom-4 left-4 z-[9999] flex items-center gap-2">
-      <audio ref={audioRef} src="/bgm.mp3" loop />
-      
-      <button
-        onClick={togglePlay}
-        className={`
-          flex items-center justify-center w-12 h-12 
-          border-4 border-black font-bold text-xl shadow-[4px_4px_0_rgba(0,0,0,0.5)]
-          transition-all active:translate-y-1 active:shadow-none
-          ${isPlaying ? "bg-green-600 hover:bg-green-500" : "bg-red-600 hover:bg-red-500"}
-          text-white
-        `}
-        title={isPlaying ? "Mute Music" : "Play Music"}
+    <div className="fixed bottom-4 right-4 z-50">
+      <button 
+        onClick={(e) => {
+            e.stopPropagation();
+            togglePlay();
+        }}
+        className="bg-black/80 border border-cyan-500 text-cyan-400 p-3 rounded-full hover:bg-cyan-900/50 transition-all shadow-[0_0_15px_rgba(6,182,212,0.4)] group"
       >
-        {isPlaying ? "♫" : "✕"}
+        {isPlaying ? (
+           <span className="group-hover:animate-pulse">🔊</span>
+        ) : (
+           <span className="opacity-50">🔇</span>
+        )}
       </button>
-      
-      {/* 音量提示文字 (Minecraft 風格) */}
-      <div className="hidden md:block bg-black/70 text-white px-2 py-1 text-xs font-mono rounded">
-        {isPlaying ? "Music ON" : "Music OFF"}
-      </div>
     </div>
   );
-}
+});
+
+export default BackgroundMusic;

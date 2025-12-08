@@ -1,174 +1,217 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
-// ✅ 關鍵修正：將引入的 Record 型別重新命名為 UserRecord，避免與內建型別衝突
-import { getRecords, Record as UserRecord } from "@/app/utils/storage"; 
-import {
-  Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer,
-  BarChart, Bar, XAxis, YAxis, Tooltip, Cell
-} from "recharts";
+import { useRouter } from "next/navigation";
+import { getStoredSubjectStats } from "@/app/utils/storage";
+// ✅ 1. 引入聲音組件
+import BackgroundMusic from "@/app/components/BackgroundMusic";
+import useSound from "@/app/hooks/useSound";
 
-// 🤖 報告生成器：分析盲點，並指出在哪個科目上出錯最多
-const generateReportSummary = (allRecords: UserRecord[], blindSpotData: { name: string, count: number }[]): string => {
-    if (allRecords.length === 0) return "No data recorded yet. Go take some quizzes!";
+const SUBJECTS = ['math', 'bio', 'chem', 'physics'];
 
-    const mainBlindSpot = blindSpotData.length > 0 ? blindSpotData[0].name : null;
-    if (!mainBlindSpot) return "Your stats look balanced, or you haven't made many mistakes! Try the 'Desert' biome for a harder challenge!";
-
-    const mainSpotRecords = allRecords.filter(r => !r.isCorrect && r.blindSpot === mainBlindSpot);
-    const subjectCounts: Record<string, number> = {}; // 👈 注意：這裡用的是內建 Record<string, number>
-    
-    mainSpotRecords.forEach(r => {
-        subjectCounts[r.subject] = (subjectCounts[r.subject] || 0) + 1;
-    });
-
-    const subjectWithMostErrors = Object.keys(subjectCounts).reduce((a, b) => 
-        subjectCounts[a] > subjectCounts[b] ? a : b, 'None'
-    );
-    const errorCount = subjectCounts[subjectWithMostErrors] || 0;
-
-    switch (mainBlindSpot) {
-        case "Calculation Error":
-            return `您的首要威脅是 **計算粗心 (${errorCount} 次)**。這主要發生在 ${subjectWithMostErrors.toUpperCase()} 類型的題目上。請練習在解題後加入嚴格的「驗算步驟」，以避免失分。`;
-        case "Concept Error":
-            return `**觀念混淆** 是最大的失分點 (${errorCount} 次)。請針對 ${subjectWithMostErrors.toUpperCase()} 的主題進行複習。這是知識儲存上的漏洞，建議回頭查閱講義。`;
-        case "Misreading":
-            return `您有 ${errorCount} 次的錯誤歸因於**審題不清**。您的知識是足夠的，但請在作答時放慢速度，劃出關鍵字，避免因為時間壓力而看錯問題。`;
-        case "Careless":
-            return `您有 ${errorCount} 次的 **純粹粗心** 錯誤。這表示您的知識基礎穩固，但遺失了分數。建議在每次測驗結束後加入 5 分鐘的「專門檢查時間」。`;
-        default:
-            return `我們偵測到您的主要盲點是 ${mainBlindSpot}。請針對該類型的題目進行更多練習，以鞏固基礎。`;
-    }
+const getStatus = (percent: number) => {
+  if (percent >= 80) return { label: "OPTIMAL", color: "text-green-400", border: "border-green-500", bg: "bg-green-500" };
+  if (percent >= 60) return { label: "STABLE", color: "text-cyan-400", border: "border-cyan-500", bg: "bg-cyan-500" };
+  if (percent >= 40) return { label: "WARNING", color: "text-yellow-400", border: "border-yellow-500", bg: "bg-yellow-500" };
+  return { label: "CRITICAL", color: "text-red-500", border: "border-red-500", bg: "bg-red-500" };
 };
 
-
 export default function AnalysisPage() {
-  // ✅ 修正：現在使用 UserRecord[]
-  const [records, setRecords] = useState<UserRecord[]>([]); 
+  const router = useRouter();
+  const [username, setUsername] = useState("Unknown Student");
+  const [stats, setStats] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  
+  // ✅ 2. 註冊點擊音效
+  const playClick = useSound('/sounds/click.mp3');
+  
+  const [briefing, setBriefing] = useState<{
+    weakest: string;
+    strongest: string;
+    message: string;
+  } | null>(null);
 
   useEffect(() => {
-    setRecords(getRecords());
+    const storedName = localStorage.getItem("username");
+    if (storedName) setUsername(storedName);
+
+    const computedStats = SUBJECTS.map(sub => {
+      const data = getStoredSubjectStats(sub);
+      const percent = data.total > 0 ? Math.round((data.correct / data.total) * 100) : 0;
+      return {
+        id: sub,
+        label: sub.charAt(0).toUpperCase() + sub.slice(1), 
+        total: data.total,
+        correct: data.correct,
+        percent: percent,
+        status: getStatus(percent)
+      };
+    });
+
+    setStats(computedStats);
+
+    const activeStats = computedStats.filter(s => s.total > 0);
+    
+    if (activeStats.length > 0) {
+      const sorted = [...activeStats].sort((a, b) => b.percent - a.percent);
+      const strongest = sorted[0];
+      const weakest = sorted[sorted.length - 1];
+
+      setBriefing({
+        strongest: strongest.label,
+        weakest: weakest.label,
+        message: weakest.percent < 60 
+          ? `Priority Alert: ${weakest.label} proficiency is below threshold. Recommended immediate review in Simulation Mode.` 
+          : `Performance is stable. Maintain current training intensity on ${strongest.label} and improve consistency.`
+      });
+    } else {
+      setBriefing(null);
+    }
+
+    setLoading(false);
   }, []);
 
-  // 數據處理: 技能與盲點 (使用 UserRecord[])
-  const skillStats = ["Knowledge", "Calculation", "Logic", "Observation"].map(skill => {
-    const skillRecords = records.filter(r => r.skill === skill);
-    const total = skillRecords.length;
-    const correct = skillRecords.filter(r => r.isCorrect).length;
-    const score = total === 0 ? 20 : Math.round((correct / total) * 100);
-    return { subject: skill, score, fullMark: 100 };
-  });
-
-  const wrongRecords = records.filter(r => !r.isCorrect);
-  const blindSpotCounts: Record<string, number> = {}; // 這裡仍使用內建 Record
-  wrongRecords.forEach(r => {
-    blindSpotCounts[r.blindSpot] = (blindSpotCounts[r.blindSpot] || 0) + 1;
-  });
-  
-  const blindSpotData = Object.keys(blindSpotCounts).map(key => ({
-    name: key,
-    count: blindSpotCounts[key]
-  })).sort((a, b) => b.count - a.count);
-
-  const reportSummary = generateReportSummary(records, blindSpotData);
+  const handleReset = () => {
+    playClick(); // 播放音效
+    if(confirm("⚠️ AUTHORIZATION REQUIRED: Purge all student records?")){
+        localStorage.removeItem("subject_stats");
+        window.location.reload();
+    }
+  }
 
   return (
-    <div className="min-h-screen bg-[#1a1a1a] text-white p-6 font-mono flex flex-col items-center">
+    <div className="min-h-screen bg-[#050505] text-white p-6 font-mono flex flex-col items-center relative overflow-hidden">
       
-      {/* 導航 */}
-      <div className="w-full max-w-4xl flex justify-between items-center mb-8">
-        <Link href="/dashboard" className="text-gray-400 hover:text-white flex items-center gap-2">
-          ⬅ Back to World
-        </Link>
-        <h1 className="text-2xl font-bold text-yellow-500 tracking-widest uppercase drop-shadow-md">
-          Player Statistics
-        </h1>
+      {/* ✅ 3. 放入背景音樂 (這裡使用 Lobby 的音樂，比較適合看報告) */}
+      <BackgroundMusic src="/sounds/bgm_lobby.mp3" />
+
+      {/* 背景裝飾 */}
+      <div className="absolute inset-0 bg-[linear-gradient(rgba(30,30,30,0.5)_1px,transparent_1px),linear-gradient(90deg,rgba(30,30,30,0.5)_1px,transparent_1px)] bg-[size:50px_50px] opacity-20 pointer-events-none"></div>
+      
+      {/* 頂部導航 */}
+      <div className="z-10 w-full max-w-5xl flex justify-between items-center mb-10 border-b border-gray-800 pb-4">
+        <button 
+          onClick={() => { playClick(); router.push('/dashboard'); }} 
+          className="text-gray-400 hover:text-white flex items-center gap-2 transition-colors px-4 py-2 border border-transparent hover:border-gray-700 rounded"
+        >
+          <span>◀</span> BACK TO LOBBY
+        </button>
+        <div className="text-right">
+           <div className="text-xs text-gray-500 tracking-[0.3em] uppercase">Student Profile</div>
+           <div className="text-xl font-bold text-cyan-400 tracking-wider">{username}</div>
+        </div>
       </div>
 
-      <div className="w-full max-w-4xl grid grid-cols-1 md:grid-cols-2 gap-8">
+      <div className="z-10 w-full max-w-5xl grid grid-cols-1 lg:grid-cols-3 gap-8">
         
-        {/* 🕸️ 左側：技能雷達圖 (Skill Radar) */}
-        <div className="bg-[#2c2c2c] border-4 border-gray-600 p-4 rounded-sm shadow-xl">
-          <h2 className="text-center text-green-400 font-bold mb-4 uppercase text-lg border-b-2 border-gray-600 pb-2">
-            Skill Proficiency
-          </h2>
-          <div className="h-64 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <RadarChart cx="50%" cy="50%" outerRadius="80%" data={skillStats}>
-                <PolarGrid stroke="#555" />
-                <PolarAngleAxis dataKey="subject" tick={{ fill: '#ccc', fontSize: 12 }} />
-                <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
-                <Radar
-                  name="Score"
-                  dataKey="score"
-                  stroke="#82ca9d"
-                  fill="#82ca9d"
-                  fillOpacity={0.5}
-                />
-                <Tooltip 
-                  contentStyle={{ backgroundColor: '#1a1a1a', borderColor: '#82ca9d', color: '#fff' }}
-                  itemStyle={{ color: '#82ca9d' }}
-                />
-              </RadarChart>
-            </ResponsiveContainer>
-          </div>
-          <p className="text-center text-xs text-gray-500 mt-2">
-            *Based on quiz accuracy per skill type
-          </p>
+        {/* 左側：數據總覽 */}
+        <div className="lg:col-span-2 space-y-6">
+           <div className="flex items-center gap-3 mb-4">
+              <span className="text-2xl">📊</span>
+              <h2 className="text-xl font-bold tracking-widest text-white">PROFICIENCY METRICS</h2>
+           </div>
+
+           {loading ? (
+             <div className="text-center py-20 text-gray-500 animate-pulse">ANALYZING RECORDS...</div>
+           ) : (
+             <div className="grid gap-5">
+               {stats.map((stat) => (
+                 <div key={stat.id} className="group relative bg-gray-900/40 border border-gray-800 p-5 rounded-lg hover:border-gray-600 transition-all">
+                    <div className="flex justify-between items-start mb-3">
+                       <div>
+                          <div className="flex items-center gap-3">
+                             <span className="text-lg font-bold text-gray-200">{stat.label}</span>
+                             <span className={`text-[10px] px-2 py-0.5 rounded border ${stat.status.border} ${stat.status.color} bg-opacity-10 ${stat.status.bg}`}>
+                                {stat.status.label}
+                             </span>
+                          </div>
+                          <div className="text-xs text-gray-500 mt-1">Samples: {stat.total} | Correct: {stat.correct}</div>
+                       </div>
+                       <div className={`text-2xl font-bold font-mono ${stat.status.color}`}>
+                          {stat.percent}%
+                       </div>
+                    </div>
+
+                    <div className="w-full h-2 bg-black rounded-full overflow-hidden border border-gray-800">
+                       <div 
+                         className={`h-full ${stat.status.bg} shadow-[0_0_10px_currentColor] transition-all duration-1000`}
+                         style={{ width: `${stat.percent}%` }}
+                       ></div>
+                    </div>
+                 </div>
+               ))}
+             </div>
+           )}
         </div>
 
-        {/* ⚠️ 右側：盲點分析 (Blind Spot Analysis) */}
-        <div className="bg-[#2c2c2c] border-4 border-gray-600 p-4 rounded-sm shadow-xl">
-          <h2 className="text-center text-red-400 font-bold mb-4 uppercase text-lg border-b-2 border-gray-600 pb-2">
-            Weakness Analysis
-          </h2>
-          
-          {blindSpotData.length > 0 ? (
-            <div className="h-64 w-full flex flex-col justify-center">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart layout="vertical" data={blindSpotData} margin={{ left: 20 }}>
-                  <XAxis type="number" hide />
-                  <YAxis dataKey="name" type="category" width={100} tick={{ fill: '#fff', fontSize: 12 }} />
-                  <Tooltip cursor={{fill: '#333'}} contentStyle={{ backgroundColor: '#1a1a1a', borderColor: '#f87171' }} />
-                  <Bar dataKey="count" barSize={20} radius={[0, 4, 4, 0]}>
-                    {blindSpotData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={index === 0 ? '#ef4444' : '#fca5a5'} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-              <div className="mt-2 text-center">
-                 <p className="text-red-300 text-sm">
-                   Main Threat: <span className="font-bold underline">{blindSpotData[0].name}</span>
-                 </p>
-                 <p className="text-gray-500 text-xs mt-1">
-                   Fix this to boost your grade!
-                 </p>
+        {/* 右側：戰術簡報 */}
+        <div className="lg:col-span-1 space-y-6">
+           
+           <div className="bg-black/60 border-2 border-cyan-900/50 p-6 rounded-lg relative overflow-hidden">
+              <div className="absolute top-0 right-0 p-2 opacity-20">
+                 <svg className="w-20 h-20 text-cyan-500" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" /></svg>
               </div>
-            </div>
-          ) : (
-            <div className="h-64 flex flex-col items-center justify-center text-gray-500">
-              <span className="text-4xl mb-2">🛡️</span>
-              <p>No weaknesses detected yet.</p>
-              <p className="text-xs">Go challenge some quizzes!</p>
-            </div>
-          )}
+              <h3 className="text-cyan-500 font-bold text-xs tracking-[0.2em] mb-4">IDENTIFICATION</h3>
+              <div className="space-y-2">
+                 <div className="flex justify-between border-b border-gray-800 pb-2">
+                    <span className="text-gray-500 text-sm">Codename</span>
+                    <span className="text-white font-mono">{username}</span>
+                 </div>
+                 <div className="flex justify-between border-b border-gray-800 pb-2">
+                    <span className="text-gray-500 text-sm">Class Rank</span>
+                    <span className="text-purple-400 font-mono">Cadet</span>
+                 </div>
+                 <div className="flex justify-between border-b border-gray-800 pb-2">
+                    <span className="text-gray-500 text-sm">Status</span>
+                    <span className="text-green-400 font-mono">Active</span>
+                 </div>
+              </div>
+           </div>
+
+           <div className="bg-slate-900/50 border-l-4 border-yellow-500 p-6 rounded-r-lg shadow-lg relative">
+              <h3 className="text-yellow-500 font-bold text-sm tracking-widest mb-3 flex items-center gap-2">
+                 ⚡ TACTICAL BRIEFING
+              </h3>
+              
+              {briefing ? (
+                <div className="space-y-4">
+                  <p className="text-gray-300 text-sm leading-relaxed">
+                     {briefing.message}
+                  </p>
+                  
+                  {briefing.weakest && (
+                    <div className="mt-4 p-3 bg-red-900/20 border border-red-900/50 rounded">
+                       <div className="text-[10px] text-red-400 uppercase mb-1">Recommended Training</div>
+                       <div className="flex justify-between items-center">
+                          <span className="text-white font-bold">{briefing.weakest} Simulation</span>
+                          <button 
+                            onClick={() => { playClick(); router.push('/quiz/forest'); }} 
+                            className="px-3 py-1 bg-red-600 hover:bg-red-500 text-white text-xs font-bold rounded transition-colors"
+                          >
+                            INITIATE
+                          </button>
+                       </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <p className="text-gray-500 text-sm italic">
+                  No simulation data available. Pending student participation.
+                </p>
+              )}
+           </div>
+
+           <div className="pt-8 border-t border-gray-800 text-right">
+              <button 
+                onClick={handleReset}
+                className="text-[10px] text-red-800 hover:text-red-500 transition-colors uppercase tracking-widest border border-red-900/30 px-3 py-2 rounded hover:bg-red-900/10"
+              >
+                ⚠ Factory Reset Data
+              </button>
+           </div>
         </div>
 
       </div>
-
-      {/* 底部建議 - 🤖 AI 教練報告 */}
-      <div className="w-full max-w-4xl mt-8 bg-blue-900/30 border-2 border-blue-500/50 p-4 rounded">
-        <h3 className="text-blue-300 font-bold mb-2 flex items-center gap-2">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20v-4"/></svg>
-          AI Coach Diagnostic Report
-        </h3>
-        <p className="text-gray-300 text-base leading-relaxed">
-          {reportSummary}
-        </p>
-      </div>
-
     </div>
   );
 }

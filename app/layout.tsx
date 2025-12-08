@@ -1,53 +1,23 @@
+// 檔案： app/layout.tsx
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
-import "./globals.css";
+import { Inter, JetBrains_Mono } from "next/font/google"; 
+import "./globals.css"; 
 
-// ✅ 引入元件 (使用相對路徑 ./ 以避免路徑錯誤)
-import Protection from "./components/Protection";
-import Footer from "./components/Footer";
-import BackgroundMusic from "./components/BackgroundMusic"; // 🎵 新增音樂元件
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
+const jetbrainsMono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-mono" });
 
 export const metadata: Metadata = {
-  title: "STEM INSIGHT",
-  description: "Interactive Bio-Math Learning Platform",
+  title: "Hao Hao School",
+  description: "Advanced STEM Learning",
 };
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+// ⚠️ 這裡絕對不能有任何 UI 或 BackgroundMusic
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    // ✅ 加入 'select-none' 禁止文字被反白選取
-    <html lang="en" className="select-none">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
-        {/* 🛡️ 全域防護罩 (浮水印 + 禁右鍵) */}
-        <Protection />
-        
-        {/* 🎵 全域背景音樂 (懸浮按鈕) */}
-        <BackgroundMusic />
-
-        {/* 頁面主要內容結構 */}
-        <div className="min-h-screen flex flex-col">
-          <main className="flex-1">
-            {children}
-          </main>
-          
-          {/* 🦶 全域版權頁尾 */}
-          <Footer />
-        </div>
+    <html lang="en">
+      <body className={`${inter.variable} ${jetbrainsMono.variable} antialiased bg-black`}>
+        {/* 這個 children 會變成你現在訪問的頁面 (例如 Quiz) */}
+        {children}
       </body>
     </html>
   );
